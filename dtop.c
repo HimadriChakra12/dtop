@@ -24,7 +24,7 @@
 #define REFRESH_RATE_MS 1000
 
 /* Colors matching btop++ */
-#define COLOR_BG 0x1a1a1a
+#define COLOR_BG 0x000000
 #define COLOR_FG 0xcccccc
 #define COLOR_CPU 0x88cc88
 #define COLOR_CPU_GRAPH 0x44aa44

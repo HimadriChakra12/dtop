@@ -4,8 +4,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 -std=c99
 LDFLAGS = 
-TARGET = ctop
-SRC = ctop.c
+TARGET = dtop
+SRC = dtop.c
 
 # Detect OS for potential platform-specific flags
 UNAME_S := $(shell uname -s)

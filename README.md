@@ -1,4 +1,4 @@
-# ctop
+# dtop
 
 A lightweight system resource monitor for Linux and macOS, written in C and inspired by btop++.
 
@@ -37,7 +37,7 @@ make uninstall       # Remove from installation directory
 ## Usage
 
 ```bash
-./ctop           # Run the monitor
+./dtop           # Run the monitor
 ```
 
 ### Keyboard Shortcuts
@@ -57,4 +57,4 @@ make uninstall       # Remove from installation directory
 
 GPL-3.0 - See [LICENSE](LICENSE) file.
 
-ctop includes [termbox2](https://github.com/termbox/termbox2) (MIT licensed) as a vendored dependency.
+dtop includes [termbox2](https://github.com/termbox/termbox2) (MIT licensed) as a vendored dependency.
