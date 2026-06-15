@@ -1,1 +1,6 @@
 /dtop
+/dtop.o
+/src/stats.o
+/src/draw.o
+/src/ui.o
+/src/utils.o

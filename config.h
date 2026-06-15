@@ -18,7 +18,7 @@
 #define TB_OPT_ATTR_W 32
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-#include "termbox2.h"
+#include "src/termbox2.h"
 #pragma GCC diagnostic pop
 
 /* Version and timing */
