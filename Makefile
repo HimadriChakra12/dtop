@@ -1,7 +1,7 @@
 # ctop Makefile
 # A simple system resource monitor in C
 
-CC = gcc
+CC = clang
 CFLAGS = -Wall -Wextra -O2 -std=c99
 LDFLAGS = 
 TARGET = dtop
