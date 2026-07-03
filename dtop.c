@@ -47,6 +47,12 @@ int g_refresh_rate_ms = REFRESH_RATE_MS;
 float g_elapsed_seconds = 1.0f;
 long g_clk_tck = 0;
 
+int g_search_active = 0;
+char g_search_query[64] = {0};
+int g_search_len = 0;
+int g_filtered_indices[MAX_PROCESSES];
+int g_filtered_count = 0;
+
 int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
@@ -88,7 +94,36 @@ int main(int argc, char *argv[]) {
         
         if (ret == TB_OK) {
             if (ev.type == TB_EVENT_KEY) {
-                if (ev.ch == '1') {
+                if (g_search_active) {
+                    if (ev.key == TB_KEY_ESC) {
+                        g_search_active = 0;
+                        g_search_len = 0;
+                        g_search_query[0] = '\0';
+                        g_selected_process = 0;
+                        g_scroll_offset = 0;
+                        update_process_filter();
+                        need_redraw = 1;
+                    } else if (ev.key == TB_KEY_ENTER) {
+                        g_search_active = 0;
+                        need_redraw = 1;
+                    } else if (ev.key == TB_KEY_BACKSPACE || ev.key == TB_KEY_BACKSPACE2) {
+                        if (g_search_len > 0) {
+                            g_search_query[--g_search_len] = '\0';
+                            g_selected_process = 0;
+                            g_scroll_offset = 0;
+                            update_process_filter();
+                        }
+                        need_redraw = 1;
+                    } else if (ev.ch != 0 && ev.ch >= 32 && ev.ch < 127 &&
+                               g_search_len < (int)sizeof(g_search_query) - 1) {
+                        g_search_query[g_search_len++] = (char)ev.ch;
+                        g_search_query[g_search_len] = '\0';
+                        g_selected_process = 0;
+                        g_scroll_offset = 0;
+                        update_process_filter();
+                        need_redraw = 1;
+                    }
+                } else if (ev.ch == '1') {
                     g_show_cpu = !g_show_cpu;
                     need_redraw = 1;
                     pane_toggled = 1;
@@ -127,8 +162,8 @@ int main(int argc, char *argv[]) {
                         if (g_signal_selected < NUM_SIGNALS - 1) g_signal_selected++;
                         need_redraw = 1;
                     } else if (ev.key == TB_KEY_ENTER) {
-                        if (g_selected_process >= 0 && g_selected_process < g_stats.process_count) {
-                            int pid = g_stats.processes[g_selected_process].pid;
+                        if (g_selected_process >= 0 && g_selected_process < g_filtered_count) {
+                            int pid = g_stats.processes[g_filtered_indices[g_selected_process]].pid;
                             int sig = SIGNALS[g_signal_selected].signum;
                             send_signal_to_process(pid, sig);
                             g_signal_sent = 1;
@@ -144,8 +179,8 @@ int main(int argc, char *argv[]) {
                         g_confirm_menu_active = 0;
                         need_redraw = 1;
                     } else if (ev.key == TB_KEY_ENTER) {
-                        if (g_selected_process >= 0 && g_selected_process < g_stats.process_count) {
-                            int pid = g_stats.processes[g_selected_process].pid;
+                        if (g_selected_process >= 0 && g_selected_process < g_filtered_count) {
+                            int pid = g_stats.processes[g_filtered_indices[g_selected_process]].pid;
                             int sig = g_confirm_signal;
                             send_signal_to_process(pid, sig);
                             g_signal_sent = 1;
@@ -156,31 +191,34 @@ int main(int argc, char *argv[]) {
                         g_confirm_menu_active = 0;
                         need_redraw = 1;
                     }
-                } else if (g_show_proc && g_stats.process_count > 0 && (ev.ch == 'k' || ev.ch == 'K')) {
+                } else if (g_show_proc && g_filtered_count > 0 && (ev.ch == 'x' || ev.ch == 'X')) {
                     g_confirm_menu_active = 1;
                     g_confirm_signal = SIGKILL;
                     need_redraw = 1;
-                } else if (g_show_proc && g_stats.process_count > 0 && (ev.ch == 't' || ev.ch == 'T')) {
+                } else if (g_show_proc && g_filtered_count > 0 && (ev.ch == 't' || ev.ch == 'T')) {
                     g_confirm_menu_active = 1;
                     g_confirm_signal = SIGTERM;
                     need_redraw = 1;
-                } else if (g_show_proc && g_stats.process_count > 0 && (ev.ch == 's' || ev.ch == 'S')) {
+                } else if (g_show_proc && g_filtered_count > 0 && (ev.ch == 's' || ev.ch == 'S')) {
                     g_signal_menu_active = 1;
                     g_signal_selected = 0;
+                    need_redraw = 1;
+                } else if (g_show_proc && ev.ch == '/') {
+                    g_search_active = 1;
                     need_redraw = 1;
                 } else if (ev.ch == 'q' || ev.ch == 'Q' || ev.key == TB_KEY_ESC || 
                           ev.key == TB_KEY_CTRL_C) {
                     g_running = 0;
-                } else if (!in_error_mode && g_show_proc && (ev.key == TB_KEY_CTRL_N || ev.key == TB_KEY_ARROW_DOWN)) {
-                    if (g_selected_process < g_stats.process_count - 1) g_selected_process++;
+                } else if (!in_error_mode && g_show_proc && (ev.key == TB_KEY_CTRL_N || ev.key == TB_KEY_ARROW_DOWN || ev.ch == 'j')) {
+                    if (g_selected_process < g_filtered_count - 1) g_selected_process++;
                     need_redraw = 1;
-                } else if (!in_error_mode && g_show_proc && (ev.key == TB_KEY_CTRL_P || ev.key == TB_KEY_ARROW_UP)) {
+                } else if (!in_error_mode && g_show_proc && (ev.key == TB_KEY_CTRL_P || ev.key == TB_KEY_ARROW_UP || ev.ch == 'k')) {
                     if (g_selected_process > 0) g_selected_process--;
                     need_redraw = 1;
                 } else if (!in_error_mode && g_show_proc && (ev.key == TB_KEY_CTRL_V || ev.key == TB_KEY_PGDN)) {
                     g_selected_process += 10;
-                    if (g_selected_process >= g_stats.process_count)
-                        g_selected_process = g_stats.process_count - 1;
+                    if (g_selected_process >= g_filtered_count)
+                        g_selected_process = g_filtered_count - 1;
                     need_redraw = 1;
                 } else if (!in_error_mode && g_show_proc && ((ev.key == 'v' && (ev.mod & TB_MOD_ALT)) || ev.key == TB_KEY_PGUP)) {
                     g_selected_process -= 10;
@@ -190,7 +228,7 @@ int main(int argc, char *argv[]) {
                     g_selected_process = 0;
                     need_redraw = 1;
                 } else if (!in_error_mode && g_show_proc && (ev.key == TB_KEY_CTRL_E || ev.key == TB_KEY_END)) {
-                    g_selected_process = g_stats.process_count - 1;
+                    g_selected_process = g_filtered_count - 1;
                     need_redraw = 1;
                 }
             } else if (ev.type == TB_EVENT_RESIZE) {

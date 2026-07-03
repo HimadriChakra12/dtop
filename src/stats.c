@@ -16,6 +16,38 @@ int send_signal_to_process(int pid, int sig) {
     return kill(pid, sig);
 }
 
+static int str_contains_ci(const char *haystack, const char *needle) {
+    if (!needle || !*needle) return 1;
+    if (!haystack) return 0;
+    size_t hlen = strlen(haystack);
+    size_t nlen = strlen(needle);
+    if (nlen > hlen) return 0;
+    for (size_t i = 0; i + nlen <= hlen; i++) {
+        size_t j = 0;
+        for (; j < nlen; j++) {
+            if (tolower((unsigned char)haystack[i + j]) != tolower((unsigned char)needle[j])) break;
+        }
+        if (j == nlen) return 1;
+    }
+    return 0;
+}
+
+void update_process_filter(void) {
+    g_filtered_count = 0;
+    for (int i = 0; i < g_stats.process_count && g_filtered_count < MAX_PROCESSES; i++) {
+        ProcessInfo *proc = &g_stats.processes[i];
+        if (g_search_len == 0 ||
+            str_contains_ci(proc->name, g_search_query) ||
+            str_contains_ci(proc->cmdline, g_search_query)) {
+            g_filtered_indices[g_filtered_count++] = i;
+        }
+    }
+    if (g_selected_process >= g_filtered_count) {
+        g_selected_process = g_filtered_count > 0 ? g_filtered_count - 1 : 0;
+    }
+    if (g_selected_process < 0) g_selected_process = 0;
+}
+
 void parse_cpu_stats(void) {
     FILE *fp = fopen("/proc/stat", "r");
     if (!fp) return;
@@ -398,5 +430,6 @@ void update_stats(void) {
     parse_disk_stats();
     parse_battery();
     parse_processes();
+    update_process_filter();
     g_stats.history_index = (g_stats.history_index + 1) % HISTORY_SIZE;
 }

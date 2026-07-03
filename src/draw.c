@@ -83,13 +83,28 @@ void draw_cpu_section(int x, int y, int w, int h) {
     int graph_w = w - 2;
     int graph_h = (h > 8) ? 2 : 1;
     if (graph_w > 60) graph_w = 60;
-    draw_graph(x, y + 1, graph_w, graph_h, g_stats.overall.history, g_stats.overall.history_idx, COLOR_CPU);
     
-    int core_start_y = y + 1 + graph_h;
-    if (core_start_y >= y + h - 1) return;
+    /* Core stats live right under the header; the overall graph sits at the
+     * very bottom of the section so it doesn't feel jammed against the top edge. */
+    int core_start_y = y + 1;
+    int content_bottom = y + h - 1;
+    
+    int graph_y = content_bottom - graph_h;
+    if (graph_y < core_start_y) {
+        graph_y = core_start_y;
+        graph_h = content_bottom - core_start_y;
+        if (graph_h < 0) graph_h = 0;
+    }
+    
+    if (core_start_y >= graph_y) {
+        if (graph_h > 0) {
+            draw_graph(x, graph_y, graph_w, graph_h, g_stats.overall.history, g_stats.overall.history_idx, COLOR_CPU);
+        }
+        return;
+    }
     
     int core_label_width = (g_stats.num_cores >= 100) ? 4 : (g_stats.num_cores >= 10 ? 3 : 2);
-    int available_core_rows = (y + h - 1) - core_start_y;
+    int available_core_rows = graph_y - core_start_y;
     
     int two_line_item_width = core_label_width + 12;
     int max_cores_per_row = (w - 2) / two_line_item_width;
@@ -130,7 +145,7 @@ void draw_cpu_section(int x, int y, int w, int h) {
             int cy1 = core_start_y + row_group * 2;
             int cy2 = cy1 + 1;
             
-            if (cy2 >= y + h - 1) break;
+            if (cy2 >= graph_y) break;
             
             CoreStat *core = &g_stats.cores[i];
             uint32_t ccolor = core->percent > 80 ? COLOR_HIGH :
@@ -157,7 +172,7 @@ void draw_cpu_section(int x, int y, int w, int h) {
             int cx = x + (i % cores_per_row) * single_line_item_width;
             int cy = core_start_y + (i / cores_per_row);
             
-            if (cy >= y + h - 1) break;
+            if (cy >= graph_y) break;
             
             CoreStat *core = &g_stats.cores[i];
             uint32_t ccolor = core->percent > 80 ? COLOR_HIGH :
@@ -167,6 +182,10 @@ void draw_cpu_section(int x, int y, int w, int h) {
             draw_mini_bar(cx + core_label_width, cy, 2, core->percent, ccolor);
             tb_printf(cx + core_label_width + 3, cy, ccolor, COLOR_BG, "%2.0f%%", core->percent);
         }
+    }
+    
+    if (graph_h > 0) {
+        draw_graph(x, graph_y, graph_w, graph_h, g_stats.overall.history, g_stats.overall.history_idx, COLOR_CPU);
     }
 }
 
@@ -321,6 +340,13 @@ void draw_net_section(int x, int y, int w, int h) {
 void draw_process_list(int x, int y, int w, int h) {
     draw_section_header(x, y, 5, "proc", COLOR_PROC);
     
+    if (g_search_active || g_search_len > 0) {
+        char search_disp[80];
+        snprintf(search_disp, sizeof(search_disp), " /%s%s", g_search_query,
+                 g_search_active ? "_" : "");
+        tb_printf(x + 8, y, COLOR_MED | TB_BOLD, COLOR_BG, "%s", search_disp);
+    }
+    
     if (h < 5) return;
     
     int list_start = y + 2;
@@ -389,8 +415,9 @@ void draw_process_list(int x, int y, int w, int h) {
         g_scroll_offset = g_selected_process - list_height + 1;
     }
     
-    for (int i = 0; i < list_height && (g_scroll_offset + i) < g_stats.process_count; i++) {
-        int idx = g_scroll_offset + i;
+    for (int i = 0; i < list_height && (g_scroll_offset + i) < g_filtered_count; i++) {
+        int pos = g_scroll_offset + i;
+        int idx = g_filtered_indices[pos];
         ProcessInfo *proc = &g_stats.processes[idx];
         int row = list_start + i;
         
@@ -399,7 +426,7 @@ void draw_process_list(int x, int y, int w, int h) {
         uint32_t row_fg = COLOR_FG;
         uint32_t row_bg = COLOR_BG;
         
-        if (idx == g_selected_process) {
+        if (pos == g_selected_process) {
             row_fg = TB_BLACK;
             row_bg = COLOR_HEADER;
         }
@@ -446,14 +473,20 @@ void draw_process_list(int x, int y, int w, int h) {
         tb_printf(cx, row, row_fg, row_bg, "%-*s", mem_width, mem_buf);
         cx += mem_width + 1;
         
-        tb_printf(cx, row, cpu_color | (idx == g_selected_process ? 0 : TB_BOLD), row_bg,
+        tb_printf(cx, row, cpu_color | (pos == g_selected_process ? 0 : TB_BOLD), row_bg,
                   "%*.1f", cpu_width - 1, proc->cpu_percent);
     }
     
     if (max_line > y + 2) {
         char status[128];
-        snprintf(status, sizeof(status), "%d/%d | %d | Sort:%s",
-                 g_stats.running_count, g_stats.process_count, g_selected_process + 1, get_sort_name());
+        if (g_search_len > 0) {
+            snprintf(status, sizeof(status), "%d/%d (filt %d) | %d | Sort:%s",
+                     g_stats.running_count, g_stats.process_count, g_filtered_count,
+                     g_selected_process + 1, get_sort_name());
+        } else {
+            snprintf(status, sizeof(status), "%d/%d | %d | Sort:%s",
+                     g_stats.running_count, g_stats.process_count, g_selected_process + 1, get_sort_name());
+        }
         int status_len = strlen(status);
         if (status_len > w - 2) status_len = w - 2;
         tb_printf(x, max_line, COLOR_FG, COLOR_BG, "%s", status);
@@ -486,7 +519,7 @@ void draw_top_bar(int w) {
 void draw_help_bar(int y, int w) {
     (void)w;  // Mark as intentionally unused
     tb_printf(2, y, COLOR_FG, COLOR_BG, 
-              "1-5:toggle | C-f/b:sort | C-n/p:nav | C-v/M-v:page | C-a/e:home/end | k:t:s:signal | q:quit");
+              "1-5:toggle | C-f/b:sort | j/k:nav | /:find | x:kill t:term s:signal | q:quit");
 }
 
 void draw_signal_menu(int w, int h) {
@@ -498,8 +531,8 @@ void draw_signal_menu(int w, int h) {
     if (x < 2) x = 2;
     if (y < 2) y = 2;
     
-    if (g_selected_process < 0 || g_selected_process >= g_stats.process_count) return;
-    ProcessInfo *proc = &g_stats.processes[g_selected_process];
+    if (g_selected_process < 0 || g_selected_process >= g_filtered_count) return;
+    ProcessInfo *proc = &g_stats.processes[g_filtered_indices[g_selected_process]];
     
     for (int dy = 0; dy < menu_h; dy++) {
         for (int dx = 0; dx < menu_w; dx++) {
@@ -599,8 +632,8 @@ void draw_confirm_menu(int w, int h, const char *sig_name) {
     if (x < 2) x = 2;
     if (y < 2) y = 2;
     
-    if (g_selected_process < 0 || g_selected_process >= g_stats.process_count) return;
-    ProcessInfo *proc = &g_stats.processes[g_selected_process];
+    if (g_selected_process < 0 || g_selected_process >= g_filtered_count) return;
+    ProcessInfo *proc = &g_stats.processes[g_filtered_indices[g_selected_process]];
     
     for (int dy = 0; dy < menu_h; dy++) {
         for (int dx = 0; dx < menu_w; dx++) {

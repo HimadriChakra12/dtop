@@ -26,7 +26,7 @@
 #define REFRESH_RATE_MS 1000
 
 /* Colors */
-#define COLOR_BG 0x000000
+#define COLOR_BG 0x282828
 #define COLOR_FG 0xcccccc
 #define COLOR_CPU 0x88cc88
 #define COLOR_CPU_GRAPH 0x44aa44
@@ -172,6 +172,13 @@ extern int g_refresh_rate_ms;
 extern float g_elapsed_seconds;
 extern long g_clk_tck;
 
+/* Search / filter state */
+extern int g_search_active;
+extern char g_search_query[64];
+extern int g_search_len;
+extern int g_filtered_indices[MAX_PROCESSES];
+extern int g_filtered_count;
+
 extern const SignalInfo SIGNALS[];
 extern const int NUM_SIGNALS;
 extern const char *SUPERSCRIPT[];
@@ -197,6 +204,7 @@ void parse_processes(void);
 void update_stats(void);
 int compare_processes(const void *a, const void *b);
 int send_signal_to_process(int pid, int sig);
+void update_process_filter(void);
 
 /* Function declarations from draw.c */
 void draw_section_header(int x, int y, int num, const char *title, uint32_t color);
