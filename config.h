@@ -22,25 +22,25 @@
 #pragma GCC diagnostic pop
 
 /* Version and timing */
-#define CTOP_VERSION "1.0.0"
-#define REFRESH_RATE_MS 1000
+#define CTOP_VERSION ""
+#define REFRESH_RATE_MS 500
 
 /* Colors */
-#define COLOR_BG 0x282828
-#define COLOR_FG 0xcccccc
-#define COLOR_CPU 0x88cc88
-#define COLOR_CPU_GRAPH 0x44aa44
-#define COLOR_MEM 0xccaa44
-#define COLOR_NET_DOWN 0x44aaff
-#define COLOR_NET_UP 0xff6666
-#define COLOR_DISK 0xaa88cc
-#define COLOR_PROC 0xcccccc
-#define COLOR_HEADER 0x666666
-#define COLOR_HIGH 0xff4444
-#define COLOR_MED 0xffaa44
-#define COLOR_LOW 0x44ff44
-#define COLOR_BATTERY 0x88cc44
-#define COLOR_TIME 0xffaa44
+#define COLOR_BG         0x282828
+#define COLOR_FG         0xebdbb2
+#define COLOR_CPU        0xb8bb26
+#define COLOR_CPU_GRAPH  0x98971a
+#define COLOR_MEM        0xd79921
+#define COLOR_NET_DOWN   0x458588
+#define COLOR_NET_UP     0xcc241d
+#define COLOR_DISK       0xb16286
+#define COLOR_PROC       0xa89984
+#define COLOR_HEADER     0x928374
+#define COLOR_HIGH       0xfb4934
+#define COLOR_MED        0xfe8019
+#define COLOR_LOW        0xb8bb26
+#define COLOR_BATTERY    0xb8bb26
+#define COLOR_TIME       0xd79921
 
 /* Limits */
 #define MAX_PROCESSES 512
