@@ -225,39 +225,6 @@ void parse_disk_stats(void) {
     g_stats.num_disks = new_disk_count;
 }
 
-void parse_battery(void) {
-    DIR *dir = opendir("/sys/class/power_supply");
-    if (!dir) {
-        g_stats.battery_present = 0;
-        return;
-    }
-    
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-        if (strncmp(entry->d_name, "BAT", 3) != 0) continue;
-        
-        char path[512];
-        
-        snprintf(path, sizeof(path), "/sys/class/power_supply/%s/capacity", entry->d_name);
-        FILE *fp = fopen(path, "r");
-        if (fp) {
-            fscanf(fp, "%d", &g_stats.battery_percent);
-            fclose(fp);
-            g_stats.battery_present = 1;
-        }
-        
-        snprintf(path, sizeof(path), "/sys/class/power_supply/%s/status", entry->d_name);
-        fp = fopen(path, "r");
-        if (fp) {
-            fgets(g_stats.battery_status, sizeof(g_stats.battery_status), fp);
-            g_stats.battery_status[strcspn(g_stats.battery_status, "\n")] = '\0';
-            fclose(fp);
-        }
-        break;
-    }
-    closedir(dir);
-}
-
 int compare_processes(const void *a, const void *b) {
     const ProcessInfo *pa = (const ProcessInfo *)a;
     const ProcessInfo *pb = (const ProcessInfo *)b;
@@ -428,7 +395,6 @@ void update_stats(void) {
     parse_meminfo();
     parse_net_stats();
     parse_disk_stats();
-    parse_battery();
     parse_processes();
     update_process_filter();
     g_stats.history_index = (g_stats.history_index + 1) % HISTORY_SIZE;

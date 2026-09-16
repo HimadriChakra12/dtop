@@ -22,7 +22,7 @@
 #pragma GCC diagnostic pop
 
 /* Version and timing */
-#define CTOP_VERSION ""
+#define DTOP_VERSION ""
 #define REFRESH_RATE_MS 500
 
 /* Colors */
@@ -39,7 +39,6 @@
 #define COLOR_HIGH       0xfb4934
 #define COLOR_MED        0xfe8019
 #define COLOR_LOW        0xb8bb26
-#define COLOR_BATTERY    0xb8bb26
 #define COLOR_TIME       0xd79921
 
 /* Limits */
@@ -138,9 +137,6 @@ typedef struct {
     int net_history_tx[HISTORY_SIZE];
     DiskInfo disks[MAX_DISKS];
     int num_disks;
-    int battery_percent;
-    int battery_present;
-    char battery_status[16];
 } SystemStats;
 
 typedef struct {
@@ -199,7 +195,6 @@ void parse_cpu_stats(void);
 void parse_meminfo(void);
 void parse_net_stats(void);
 void parse_disk_stats(void);
-void parse_battery(void);
 void parse_processes(void);
 void update_stats(void);
 int compare_processes(const void *a, const void *b);

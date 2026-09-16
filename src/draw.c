@@ -500,20 +500,7 @@ void draw_top_bar(int w) {
     strftime(time_str, sizeof(time_str), "%H:%M:%S", tm_info);
     
     tb_printf(w / 2 - 4, 0, COLOR_TIME | TB_BOLD, COLOR_BG, "%s", time_str);
-    
-    if (g_stats.battery_present) {
-        int batt_x = w - 20;
-        uint32_t batt_color = g_stats.battery_percent < 20 ? COLOR_HIGH :
-                              g_stats.battery_percent < 50 ? COLOR_MED : COLOR_BATTERY;
-        
-        const char *icon = strstr(g_stats.battery_status, "Charging") ? "▲" :
-                          strstr(g_stats.battery_status, "Discharging") ? "▼" : "●";
-        
-        tb_printf(batt_x, 0, batt_color, COLOR_BG, "BAT%s %d%%", icon, g_stats.battery_percent);
-        draw_mini_bar(batt_x + 10, 0, 8, g_stats.battery_percent, batt_color);
-    }
-    
-    tb_printf(2, 0, COLOR_HEADER | TB_BOLD, COLOR_BG, "ctop %s", CTOP_VERSION);
+    tb_printf(2, 0, COLOR_HEADER | TB_BOLD, COLOR_BG, "dtop %s", DTOP_VERSION);
 }
 
 void draw_help_bar(int y, int w) {

@@ -71,13 +71,13 @@ int64_t get_time_ms(void) {
 void get_config_dir(char *buf, size_t buflen) {
     const char *xdg_config = getenv("XDG_CONFIG_HOME");
     if (xdg_config && strlen(xdg_config) > 0) {
-        snprintf(buf, buflen, "%s/ctop", xdg_config);
+        snprintf(buf, buflen, "%s/dtop", xdg_config);
     } else {
         const char *home = getenv("HOME");
         if (home && strlen(home) > 0) {
-            snprintf(buf, buflen, "%s/.config/ctop", home);
+            snprintf(buf, buflen, "%s/.config/dtop", home);
         } else {
-            snprintf(buf, buflen, "/tmp/ctop");
+            snprintf(buf, buflen, "/tmp/dtop");
         }
     }
 }
@@ -97,7 +97,7 @@ void save_settings(void) {
     FILE *fp = fopen(config_file, "w");
     if (!fp) return;
     
-    fprintf(fp, "# ctop configuration file\n");
+    fprintf(fp, "# dtop configuration file\n");
     fprintf(fp, "show_cpu=%d\n", g_show_cpu);
     fprintf(fp, "show_mem=%d\n", g_show_mem);
     fprintf(fp, "show_disks=%d\n", g_show_disks);
